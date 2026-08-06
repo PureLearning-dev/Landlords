@@ -1,5 +1,6 @@
 """定义牌相关的信息"""
 
+from __future__ import annotations
 from enum import Enum
 from typing import Optional
 
@@ -68,8 +69,8 @@ class Card(Enum):
     DIAMOND_2 = ("♦", "2", 15)
 
     # ── 大小王 ──
-    SMALL_JOKER = ("大王", "小王", 16)
-    BIG_JOKER = ("小王", "大王", 17)
+    SMALL_JOKER = ("🃏", "小王", 16)
+    BIG_JOKER = ("🃟", "大王", 17)
 
     def __init__(self, symbol: str, rank: str, game_value: int):
         self.symbol = symbol
@@ -100,5 +101,9 @@ class Card(Enum):
 
     def __repr__(self) -> str:
         return f"<{self.symbol}{self.rank}>"
+
+def full_deck() -> list[Card]:
+    """得到由所有牌组成的一副完整的牌"""
+    return [c for c in Card]
 
 
