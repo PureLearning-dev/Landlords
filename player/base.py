@@ -1,5 +1,6 @@
 """定义玩家的基本操作"""
 from abc import ABC, abstractmethod
+from enum import Enum
 
 from cards.card import Card
 from player.type import Identity
@@ -30,6 +31,10 @@ class BasePlayer(ABC):
     @property
     def hold_cards(self):
         return self._hold_cards
+
+    @hold_cards.setter
+    def hold_cards(self, cards: list[Card]):
+        self._hold_cards = cards
 
     @property
     def identity(self):
@@ -84,3 +89,16 @@ class BasePlayer(ABC):
     @abstractmethod
     def show_normol_cards(self):
         pass
+
+    def card_sorting(self) -> list[Card]:
+        """给玩家的持牌进行排序"""
+
+        cards = self.hold_cards
+
+        # 使用牌的等级进行排序，从小到大进行排序
+        sorted_cards = sorted(cards, key = lambda card: card.value[2])
+        self.hold_cards = sorted_cards
+
+        return sorted_cards
+
+
