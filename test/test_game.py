@@ -22,8 +22,10 @@ class TestGame:
 
         print(f"{'-' * 40} 当前不同玩家拥有的信息 {'-' * 40}")
         for index, user in enumerate(self.users):
-            print(f"玩家 {index}：{user.name} 的角色是 【{user.identity.value}】")
-            print(f"玩家 {index}：{user.name} 的手牌有 {user.hold_cards}")
+            print(f"玩家 {index}：{user.name} 【{user.identity.value}】的手牌有 {len(user.hold_cards)} 张，如下：")
+            print(user.hold_cards)
+
+        for user in self.users:
             if user.identity == Identity.LANDOWNER:
                 print(f"{'-' * 40} [{user.name}]是地主 {'-' * 40}")
                 print(f"手牌中包括普通牌：{user.normal_cards}")
