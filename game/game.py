@@ -46,94 +46,88 @@ class Game:
         self.cards = cards
         self.users = users
 
+    def _shuffle(self):
+        random.shuffle(self.cards)
+
+    def _deal_normal_cards(self):
+        for i in range(self.USER_NUM):
+            start = i * self.NORMAL_NUM
+            end = (i + 1) * self.NORMAL_NUM
+            self.users[i].normal_cards = self.cards[start:end]
+
+    def _reset_players(self):
+        for user in self.users:
+            user.normal_cards = []
+            user.special_cards = []
+            user.identity = None
+
     def call_the_landlord(self) -> None:
-        """
-        叫地主流程
-
-        随机获取第一位叫地主的玩家，顺时针叫分，如果叫分小于当前最大叫分，则视为跳过，如果不是输入的 1、2、3，也视为跳过
-
-        叫分最大的玩家为地主
-        """
-
-        # 随机抽取一名玩家先叫地主
-        cur_user = random.randint(0, self.USER_NUM - 1)
-
-        # 场上的最大分数和当前的地主玩家下标
-        max_point_info = {
-            'max_point': 0,
-            'landlord_index': -1
-        }
-
-        # 更新玩家的身份
-        def assign_player_identity(users: list[BasePlayer], landlord_index: int):
-            for user_index, user in enumerate(users):
-                if user_index == landlord_index:
-                    user.identity = Identity.LANDOWNER
-                else:
-                    user.identity = Identity.FARMER
-
-        i = 0
-        landlord_flag = 0
-
         print(self.BID_POINT_RULES)
-        # 从 cur_user 开始叫分，每个玩家最多有一次机会
-        # 最多轮转 3 次
-        while i < 3:
-            # 得到第一个叫分的玩家
-            cur_player: BasePlayer = self.users[cur_user]
 
-            # 判断玩家是 AI 还是真人
-            # 输出当前玩家的基础信息
-            if isinstance(cur_player, UserPlayer):
-                print(f"{self.users.index(cur_player) + 1} 号玩家-[人类玩家]，名称为 {cur_player.name}")
-            elif isinstance(cur_player, AIPlayer):
-                print(f"[AI玩家]，名称为 AI")
+        def assign_player_identity(users, landlord_index):
+            for user_index, user in enumerate(users):
+                user.identity = Identity.LANDOWNER if user_index == landlord_index else Identity.FARMER
 
-            # 获取当前玩家叫的内容
-            cur_point: str = input(self.CALL_LANDLORD_PROMPT)
+        while True:
+            cur_user = random.randint(0, self.USER_NUM - 1)
+            max_point_info = {'max_point': 0, 'landlord_index': -1}
+            i = 0
+            has_landlord = False
 
-            # 输出当前玩家叫分的信息，并执行叫分后的逻辑
-            result = self.users[cur_user].call_the_landlord(max_point_info['max_point'], cur_point)
+            while i < 3:
+                cur_player = self.users[cur_user]
 
-            if result == 0:
-                i += 1
+                if isinstance(cur_player, UserPlayer):
+                    print(f"{cur_user + 1} 号玩家-[人类玩家]，名称为 {cur_player.name}")
+                elif isinstance(cur_player, AIPlayer):
+                    print(f"{cur_user + 1} 号玩家-[AI玩家]，名称为 AI")
+
+                cur_point = input(self.CALL_LANDLORD_PROMPT)
+                result = self.users[cur_user].call_the_landlord(max_point_info['max_point'], cur_point)
+
+                if result == 0:
+                    i += 1
+                    cur_user = (cur_user + 1) % self.USER_NUM
+                    continue
+                elif result == 1:
+                    max_point_info['max_point'] = int(cur_point)
+                    max_point_info['landlord_index'] = cur_user
+                    has_landlord = True
+                elif result == 2:
+                    max_point_info['max_point'] = 3
+                    max_point_info['landlord_index'] = cur_user
+                    has_landlord = True
+                    break
+
                 cur_user = (cur_user + 1) % self.USER_NUM
+                i += 1
+
+            if not has_landlord:
+                self.redeal()
                 continue
-            elif result == 1:
-                max_point_info['max_point'] = int(cur_point)
-                max_point_info['landlord_index'] = cur_user
-                if landlord_flag == 0:
-                    landlord_flag = 1
-            elif result == 2:
-                max_point_info['max_point'] = 3
-                max_point_info['landlord_index'] = cur_user
-                if landlord_flag == 0:
-                    landlord_flag = 1
-                break
 
-            cur_user = (cur_user + 1) % self.USER_NUM
-            i += 1
+            landlord_user = self.users[max_point_info['landlord_index']]
+            if isinstance(landlord_user, UserPlayer):
+                print(f"{landlord_user.name} 成功获得地主，当前 max_point 值为 {max_point_info['max_point']}")
+            assign_player_identity(self.users, max_point_info['landlord_index'])
+            break
 
-        # 判断是否确定了地主，如果没有确定，则随机确定一个玩家为地主
-        if landlord_flag == 0:
-            max_point_info['landlord_index'] = random.randint(0, self.USER_NUM - 1)
-            print("所有玩家都跳过叫分，随意随机确定一名地主")
-
-        # 输出最终得到的地主信息
-        landlord_user = self.users[max_point_info['landlord_index']]
-        if isinstance(landlord_user, UserPlayer):
-            print(f"{landlord_user.name} 成功获得地主，当前 max_point 值为 {max_point_info['max_point']}")
-
-        # 分配玩家角色
-        assign_player_identity(users=self.users, landlord_index=max_point_info['landlord_index'])
+    def redeal(self):
+        """重发牌，用于没人叫地主时重新开始"""
+        print("所有玩家都跳过叫分，重新洗牌发牌并叫地主...")
+        self._reset_players()
+        self._shuffle()
+        self._deal_normal_cards()
 
     def assign_player_normal_cards(self, cards: list[Card]):
-        # 给每个用户分配牌
+        """给玩家分配普通牌"""
+        # 给每个玩家分配牌
         for i in range(3):
             normal_cards = cards[i * self.NORMAL_NUM : (i + 1) * self.NORMAL_NUM]
             self.users[i].normal_cards = normal_cards
 
     def assign_player_special_cards(self, cards: list[Card]) -> list[Card]:
+        """给玩家分配底牌"""
         special_cards = cards[51 : 54]
 
         for user in self.users:
@@ -143,31 +137,21 @@ class Game:
         return special_cards
 
     def init_all_data(self):
-        """
-        组装得到的数据，初始化整局游戏的数据
-
-        :return: None
-        """
         print(f"没有打乱的牌有 {len(self.cards)} 张，如下：")
         print(self.cards)
 
-        # 得到一副打乱的牌
-        random.shuffle(self.cards)
+        self._shuffle()
         print(f"打乱的牌有 {len(self.cards)} 张，如下：")
         print(self.cards)
 
-        # 给每个用户 17 张普通牌
         print("每个玩家分配 17 张普通牌")
-        self.assign_player_normal_cards(cards=self.cards)
+        self._deal_normal_cards()
         for user in self.users:
-            user_normal_cards = user.show_normol_cards()
-            print(user_normal_cards)
+            print(user.show_normol_cards())
 
-        # 叫地主
         self.call_the_landlord()
 
-        # 给地主 3 张底牌
-        special_cards = self.assign_player_special_cards(cards=self.cards)
+        special_cards = self.assign_player_special_cards(self.cards)
         print(f"底牌有 {len(special_cards)} 张，如下：")
         print(special_cards)
 
